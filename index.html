@@ -229,7 +229,7 @@
         clearInterval(wait);
         tokenClient = google.accounts.oauth2.initTokenClient({
           client_id: CLIENT_ID,
-          scope: 'https://www.googleapis.com/auth/drive.metadata.readonly',
+          scope: 'https://www.googleapis.com/auth/drive.readonly',
           callback: onTokenReceived
         });
       }
