@@ -172,7 +172,9 @@
 <div id="docOverlay" style="display:none; position:fixed; inset:0; z-index:200; flex-direction:column; background:#1a1a1a;">
   <div style="background:#444547; padding:10px 16px; display:flex; align-items:center; gap:12px; flex-shrink:0; min-height:48px;">
     <button onclick="closeDoc()" title="Закрыть" style="background:none; border:none; color:#fff; font-size:22px; cursor:pointer; line-height:1; padding:0 4px; opacity:0.85; flex-shrink:0;">✕</button>
-    <span id="docTitle" style="color:#fff; font-size:14px; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"></span>
+    <span id="docTitle" style="color:#fff; font-size:14px; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1;"></span>
+    <a id="docDownloadLink" href="#" target="_blank" title="Скачать" style="background:#add145; color:#333; font-size:12px; font-weight:600; padding:5px 12px; border-radius:20px; text-decoration:none; white-space:nowrap; flex-shrink:0;">⬇ Скачать</a>
+    <a id="docOpenLink" href="#" target="_blank" title="Открыть в Drive" style="background:rgba(255,255,255,0.15); color:#fff; font-size:12px; font-weight:600; padding:5px 12px; border-radius:20px; text-decoration:none; white-space:nowrap; flex-shrink:0;">↗ Открыть</a>
   </div>
   <iframe id="docFrame" src="" allow="autoplay" style="flex:1; border:none; width:100%;"></iframe>
 </div>
@@ -329,6 +331,14 @@
     return `https://drive.google.com/file/d/${id}/preview`;
   }
 
+  function downloadUrl(file) {
+    const id = file.id, m = file.mimeType;
+    if (m.includes('document'))     return `https://docs.google.com/document/d/${id}/export?format=docx`;
+    if (m.includes('spreadsheet'))  return `https://docs.google.com/spreadsheets/d/${id}/export?format=xlsx`;
+    if (m.includes('presentation')) return `https://docs.google.com/presentation/d/${id}/export/pptx`;
+    return `https://drive.google.com/uc?export=download&id=${id}`;
+  }
+
   // ── Render helpers ────────────────────────────────────────────────
   function setContent(html) { document.getElementById('content').innerHTML = html; }
   function loadingContent() { setContent('<div class="loading-state"><div class="spinner"></div><span>Загрузка...</span></div>'); }
@@ -407,6 +417,8 @@
     const file = registry[fileId];
     const overlay = document.getElementById('docOverlay');
     document.getElementById('docTitle').textContent = file.name;
+    document.getElementById('docDownloadLink').href = downloadUrl(file);
+    document.getElementById('docOpenLink').href = driveUrl(file);
     document.getElementById('docFrame').src = embedUrl(file);
     overlay.style.display = 'flex';
   }
