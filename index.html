@@ -347,18 +347,6 @@
   </div>
 </div>
 
-<div class="viewer-overlay" id="viewerOverlay">
-  <div class="viewer-modal">
-    <div class="viewer-header">
-      <span class="viewer-title" id="viewerTitle"></span>
-      <div class="viewer-actions">
-        <a class="viewer-btn primary" id="viewerDriveLink" href="#" target="_blank">↗ Открыть в Drive</a>
-        <span class="viewer-close" id="viewerClose">×</span>
-      </div>
-    </div>
-    <iframe class="viewer-iframe" id="viewerIframe" src="about:blank" allowfullscreen></iframe>
-  </div>
-</div>
 
 <script>
   const API_KEY   = 'AIzaSyA6irWYt1N2yIVTB8BB3Q4bw82VJ4xO47g';
@@ -457,8 +445,13 @@
 
   // ── Views ───────────────────────────────────────────────────────
 
+  function setHash(hash) {
+    history.replaceState(null, '', hash ? '#' + hash : location.pathname);
+  }
+
   async function showDepts() {
     nav = { dept: null, position: null, docType: null };
+    setHash('');
     updateSidebarActive(null);
     setBreadcrumb([]);
     setContent(`<div class="welcome">
@@ -470,6 +463,7 @@
 
   async function showPositions(deptId) {
     nav.dept = deptId; nav.position = null; nav.docType = null;
+    setHash(`dept:${deptId}`);
     const dept = registry[deptId];
     updateSidebarActive(deptId);
     setBreadcrumb([{ label: dept.name, action: `dept:${deptId}` }]);
@@ -495,6 +489,7 @@
 
   async function showDocTypes(posId) {
     nav.position = posId; nav.docType = null;
+    setHash(`dept:${nav.dept}/pos:${posId}`);
     const dept = registry[nav.dept];
     const pos  = registry[posId];
     setBreadcrumb([
@@ -523,6 +518,7 @@
 
   async function showFiles(typeId) {
     nav.docType = typeId;
+    setHash(`dept:${nav.dept}/pos:${nav.position}/type:${typeId}`);
     const dept = registry[nav.dept];
     const pos  = registry[nav.position];
     const type = registry[typeId];
@@ -556,17 +552,9 @@
     } catch(e) { errorContent(e.message); }
   }
 
-  function openViewer(fileId) {
+  function openFile(fileId) {
     const file = registry[fileId];
-    document.getElementById('viewerTitle').textContent  = file.name;
-    document.getElementById('viewerIframe').src         = previewUrl(file);
-    document.getElementById('viewerDriveLink').href     = driveUrl(file);
-    document.getElementById('viewerOverlay').classList.add('open');
-  }
-
-  function closeViewer() {
-    document.getElementById('viewerOverlay').classList.remove('open');
-    document.getElementById('viewerIframe').src = 'about:blank';
+    window.open(driveUrl(file), '_blank');
   }
 
   // ── Sidebar ─────────────────────────────────────────────────────
@@ -602,7 +590,7 @@
     if (action.startsWith('dept:'))     { showPositions(action.slice(5)); return; }
     if (action.startsWith('pos:'))      { showDocTypes(action.slice(4)); return; }
     if (action.startsWith('type:'))     { showFiles(action.slice(5)); return; }
-    if (action.startsWith('open:'))     { openViewer(action.slice(5)); return; }
+    if (action.startsWith('open:'))     { openFile(action.slice(5)); return; }
   }
 
   document.addEventListener('click', e => {
@@ -610,13 +598,37 @@
     if (el) handleAction(el.dataset.action);
   });
 
-  document.getElementById('viewerClose').addEventListener('click', closeViewer);
-  document.getElementById('viewerOverlay').addEventListener('click', e => {
-    if (e.target === document.getElementById('viewerOverlay')) closeViewer();
-  });
+  // ── Restore from URL hash ─────────────────────────────────────────
+  async function restoreFromHash() {
+    const hash = decodeURIComponent(window.location.hash.slice(1));
+    if (!hash) return;
+    const parts = hash.split('/');
+    for (const part of parts) {
+      if (part.startsWith('dept:')) {
+        const id = part.slice(5);
+        await driveList(id);
+        nav.dept = id;
+      } else if (part.startsWith('pos:')) {
+        const id = part.slice(4);
+        await driveList(id);
+        nav.position = id;
+      } else if (part.startsWith('type:')) {
+        const id = part.slice(5);
+        await driveList(id);
+        nav.docType = id;
+      }
+    }
+    if (nav.docType)       { await showFiles(nav.docType); }
+    else if (nav.position) { await showDocTypes(nav.position); }
+    else if (nav.dept)     { await showPositions(nav.dept); }
+  }
 
   // ── Init ─────────────────────────────────────────────────────────
-  loadSidebar();
+  async function init() {
+    await loadSidebar();
+    await restoreFromHash();
+  }
+  init();
 </script>
 </body>
 </html>
