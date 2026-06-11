@@ -212,6 +212,7 @@
 <script src="https://accounts.google.com/gsi/client" async></script>
 <script>
   const CLIENT_ID = '759620237893-gla5qh2n1lgem1msojiro4oku7kp0mrg.apps.googleusercontent.com';
+  const API_KEY   = 'AIzaSyA6irWYt1N2yIVTB8BB3Q4bw82VJ4xO47g';
   const ROOT_ID   = '1b6d1PRJSURJ6mHGim-XIgk-xyCuW_R8T';
 
   const DEPT_ICONS    = { 'Marketing':'📣','Commercial':'💼','HR':'👥','Fitness':'🏋️','F&B':'🍽️','Finance':'💰','CSO':'📋','Security & Facilities':'🔒' };
@@ -231,7 +232,7 @@
         clearInterval(wait);
         tokenClient = google.accounts.oauth2.initTokenClient({
           client_id: CLIENT_ID,
-          scope: 'https://www.googleapis.com/auth/drive.readonly',
+          scope: 'openid email profile',
           callback: onTokenReceived
         });
       }
@@ -260,19 +261,11 @@
     document.getElementById('signinScreen').style.display = 'flex';
   }
 
-  // ── Drive API ─────────────────────────────────────────────────────
+  // ── Drive API (API key) ───────────────────────────────────────────
   async function driveList(folderId) {
     if (cache[folderId]) return cache[folderId];
-    if (!accessToken) throw new Error('Не авторизован');
-
-    const url = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent("'"+folderId+"' in parents and trashed=false")}&fields=files(id,name,mimeType)&orderBy=name&pageSize=200`;
-    const res = await fetch(url, { headers: { 'Authorization': 'Bearer ' + accessToken } });
-
-    if (res.status === 401) {
-      accessToken = null;
-      tokenClient.requestAccessToken({ prompt: '' });
-      throw new Error('Сессия истекла — войдите снова');
-    }
+    const url = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent("'"+folderId+"' in parents and trashed=false")}&key=${API_KEY}&fields=files(id,name,mimeType)&orderBy=name&pageSize=200`;
+    const res = await fetch(url);
     if (!res.ok) throw new Error('Ошибка Drive API: ' + res.status);
     const data = await res.json();
     if (data.error) throw new Error(data.error.message);
