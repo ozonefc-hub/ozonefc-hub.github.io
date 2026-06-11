@@ -235,12 +235,19 @@
           scope: 'openid email profile',
           callback: onTokenReceived
         });
+        // Попытка тихой авторизации — если сессия Google активна,
+        // портал откроется без кнопки входа
+        tokenClient.requestAccessToken({ prompt: 'none' });
       }
     }, 100);
   });
 
   function onTokenReceived(resp) {
-    if (resp.error) return;
+    if (resp.error) {
+      // Тихая авторизация не удалась — показываем экран входа
+      document.getElementById('signinScreen').style.display = 'flex';
+      return;
+    }
     accessToken = resp.access_token;
     document.getElementById('signinScreen').style.display = 'none';
     document.getElementById('portal').style.display = 'flex';
